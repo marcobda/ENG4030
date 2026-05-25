@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp, CATEGORIES } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { Package, Tag, Sparkles, DollarSign, FileText, ChevronDown, Send } from 'lucide-react';
+import PhotoUpload from '../../components/PhotoUpload';
+import { extractTags } from '../../utils/extractTags';
+import { Package, Tag, Sparkles, DollarSign, FileText, ChevronDown, Send, Camera } from 'lucide-react';
 
 export default function CreateOrder() {
   const { createOrder } = useApp();
@@ -14,8 +16,14 @@ export default function CreateOrder() {
   const [desiredPrice, setDesiredPrice] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const liveTags = useMemo(
+    () => extractTags(product, brand, characteristics, description),
+    [product, brand, characteristics, description],
+  );
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -38,6 +46,7 @@ export default function CreateOrder() {
       desiredPrice: parseFloat(desiredPrice.replace(',', '.')),
       description: description.trim(),
       category,
+      photos,
     });
     setSubmitted(true);
     setTimeout(() => navigate('/buyer/orders'), 2000);
@@ -167,6 +176,31 @@ export default function CreateOrder() {
               <p className="text-xs text-gray-400">Quanto mais detalhes, maiores as chances de encontrar o que deseja.</p>
               <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{description.length}/1000</span>
             </div>
+          </div>
+
+          {/* Live tag preview */}
+          {liveTags.length > 0 && (
+            <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+              <p className="text-xs font-semibold text-brand-blue mb-2 flex items-center gap-1">
+                <Sparkles size={12} /> Tags geradas automaticamente
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {liveTags.map(t => (
+                  <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-white border border-blue-200 text-brand-blue font-medium">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Vendedores poderão filtrar pedidos por essas tags.</p>
+            </div>
+          )}
+
+          {/* Photos (optional) */}
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-2">
+              <Camera size={15} className="text-brand-pink" /> Fotos de referência <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <PhotoUpload photos={photos} onChange={setPhotos} maxPhotos={4} />
           </div>
 
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-end">

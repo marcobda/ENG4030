@@ -23,6 +23,8 @@ export interface Order {
   desiredPrice: number;
   description: string;
   category: string;
+  tags: string[];
+  photos: string[];
   status: OrderStatus;
   createdAt: string;
   offerCount: number;
@@ -40,6 +42,7 @@ export interface Offer {
   price: number;
   deliveryDays: number;
   message: string;
+  photos: string[];
   createdAt: string;
   status: 'pending' | 'accepted' | 'rejected';
 }

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { PlusCircle, ChevronRight, MessageSquare, Clock, CheckCircle2, Tag } from 'lucide-react';
+import { PlusCircle, ChevronRight, MessageSquare, Clock, CheckCircle2, Tag, Camera } from 'lucide-react';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -47,7 +47,15 @@ export default function MyOrders() {
             {orders.map(order => (
               <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                 <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
+                  {/* Top row: thumbnail + info + price */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">
+                      {order.photos && order.photos.length > 0 ? (
+                        <img src={order.photos[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera size={20} className="text-gray-300" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -73,6 +81,7 @@ export default function MyOrders() {
                     </div>
                   </div>
 
+                  {/* Bottom row: offer count + date + link */}
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5">
