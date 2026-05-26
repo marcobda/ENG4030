@@ -46,3 +46,29 @@ export interface Offer {
   createdAt: string;
   status: 'pending' | 'accepted' | 'rejected';
 }
+
+export interface Rating {
+  id: string;
+  offerId: string;
+  orderId: string;
+  raterId: string;
+  raterName: string;
+  rateeId: string;
+  rateeName: string;
+  raterRole: 'buyer' | 'seller';
+  score: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface Negotiation {
+  id: string;
+  offerId: string;
+  orderId: string;
+  buyerId: string;
+  buyerName: string;
+  sellerId: string;
+  counterPrice?: number;
+  message: string;
+  createdAt: string;
+}

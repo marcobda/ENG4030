@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useApp, SERVICE_FEE_RATE } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
 import {
   Star, Truck, ShieldCheck, ArrowLeft, CheckCircle2,
   ChevronLeft, ChevronRight, X, Camera, MapPin, Award,
+  MessageCircle, Send, DollarSign,
 } from 'lucide-react';
 
 function formatBRL(n: number) {
@@ -26,36 +27,20 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 function PhotoGallery({ photos, onLightbox }: { photos: string[]; onLightbox: (src: string) => void }) {
   const [idx, setIdx] = useState(0);
   if (photos.length === 0) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
-        <Camera size={13} /> Sem fotos do produto
-      </div>
-    );
+    return <div className="flex items-center gap-2 text-xs text-gray-400 mt-2"><Camera size={13} /> Sem fotos do produto</div>;
   }
   const prev = (e: React.MouseEvent) => { e.stopPropagation(); setIdx(i => (i - 1 + photos.length) % photos.length); };
   const next = (e: React.MouseEvent) => { e.stopPropagation(); setIdx(i => (i + 1) % photos.length); };
-
   return (
     <div className="mt-3">
-      <div
-        className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
-        style={{ aspectRatio: '16/9' }}
-        onClick={() => onLightbox(photos[idx])}
-      >
+      <div className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer" style={{ aspectRatio: '16/9' }}
+        onClick={() => onLightbox(photos[idx])}>
         <img src={photos[idx]} alt="" className="w-full h-full object-cover" />
         {photos.length > 1 && (
           <>
-            <button onClick={prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60">
-              <ChevronLeft size={14} />
-            </button>
-            <button onClick={next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60">
-              <ChevronRight size={14} />
-            </button>
-            <span className="absolute top-2 right-2 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full font-medium">
-              {idx + 1}/{photos.length}
-            </span>
+            <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60"><ChevronLeft size={14} /></button>
+            <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60"><ChevronRight size={14} /></button>
+            <span className="absolute top-2 right-2 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full font-medium">{idx + 1}/{photos.length}</span>
           </>
         )}
       </div>
@@ -73,10 +58,89 @@ function PhotoGallery({ photos, onLightbox }: { photos: string[]; onLightbox: (s
   );
 }
 
+interface NegotiateModalProps {
+  sellerName: string;
+  currentPrice: number;
+  onClose: () => void;
+  onSend: (counterPrice: number | undefined, message: string) => void;
+}
+function NegotiateModal({ sellerName, currentPrice, onClose, onSend }: NegotiateModalProps) {
+  const [counter, setCounter] = useState('');
+  const [msg, setMsg] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const handleSend = () => {
+    if (!msg.trim()) return;
+    const cp = counter ? parseFloat(counter.replace(',', '.')) : undefined;
+    onSend(cp, msg.trim());
+    setSent(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        {sent ? (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-lg font-extrabold text-gray-900 mb-2">Mensagem enviada!</h3>
+            <p className="text-sm text-gray-500 mb-6">Sua proposta foi enviada para <strong>{sellerName}</strong>. Aguarde o retorno do vendedor.</p>
+            <button onClick={onClose} className="bg-brand-pink text-white font-bold px-6 py-2.5 rounded-xl hover:bg-brand-pink-dark transition-colors text-sm">
+              Fechar
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-extrabold text-gray-900">Negociar com {sellerName}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Oferta atual: <strong>{formatBRL(currentPrice)}</strong></p>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                  <DollarSign size={14} className="text-brand-pink" /> Contra-proposta de preço (opcional)
+                </label>
+                <div className="flex">
+                  <span className="border border-r-0 border-gray-200 bg-gray-50 rounded-l-xl px-3 py-2.5 text-sm font-semibold text-gray-600">R$</span>
+                  <input value={counter} onChange={e => setCounter(e.target.value)}
+                    placeholder={`Ex.: ${Math.round(currentPrice * 0.9).toLocaleString('pt-BR')},00`}
+                    className="flex-1 border border-gray-200 rounded-r-xl px-3 py-2.5 text-sm focus:border-brand-pink focus:ring-2 focus:ring-pink-100 transition-all" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                  <MessageCircle size={14} className="text-brand-pink" /> Mensagem *
+                </label>
+                <textarea value={msg} onChange={e => setMsg(e.target.value)}
+                  placeholder="Ex.: Toparia por R$ 950 à vista no Pix, tem como ajustar?"
+                  rows={3} maxLength={300}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:border-brand-pink focus:ring-2 focus:ring-pink-100 transition-all" />
+                <p className="text-right text-xs text-gray-400">{msg.length}/300</p>
+              </div>
+              <button onClick={handleSend} disabled={!msg.trim()}
+                className="w-full flex items-center justify-center gap-2 bg-brand-pink text-white font-bold py-3 rounded-xl hover:bg-brand-pink-dark transition-all shadow-sm shadow-pink-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                <Send size={15} /> Enviar proposta
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function OrderOffers() {
   const { id } = useParams<{ id: string }>();
-  const { orders, getOrderOffers, acceptOffer } = useApp();
+  const { orders, getOrderOffers, submitNegotiation, user } = useApp();
+  const navigate = useNavigate();
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [negotiatingOffer, setNegotiatingOffer] = useState<string | null>(null);
 
   const order = orders.find(o => o.id === id);
   const rawOffers = getOrderOffers(id ?? '');
@@ -94,6 +158,22 @@ export default function OrderOffers() {
   }
 
   const accepted = rawOffers.find(o => o.status === 'accepted');
+  const backTo = encodeURIComponent(`/buyer/orders/${order.id}/offers`);
+
+  const handleNegotiateSend = (offer: typeof rawOffers[0], counterPrice: number | undefined, message: string) => {
+    if (!user) return;
+    submitNegotiation({
+      offerId: offer.id,
+      orderId: order.id,
+      buyerId: user.id,
+      buyerName: user.name,
+      sellerId: offer.sellerId,
+      counterPrice,
+      message,
+    });
+  };
+
+  const negotiatingOfferObj = negotiatingOffer ? rawOffers.find(o => o.id === negotiatingOffer) : null;
 
   return (
     <AppLayout>
@@ -131,12 +211,18 @@ export default function OrderOffers() {
           </div>
         </div>
 
+        {/* 3% fee notice */}
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 mb-5 text-xs text-amber-800">
+          <span className="font-semibold">ℹ️ Taxa de serviço de 3% aplicada ao valor do vendedor.</span>
+          <span>O total mostrado já inclui essa taxa.</span>
+        </div>
+
         {order.status === 'closed' && accepted && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-6 flex items-center gap-3">
             <CheckCircle2 size={28} className="text-green-600 flex-shrink-0" />
             <div>
               <p className="font-bold text-green-800">Oferta aceita!</p>
-              <p className="text-sm text-green-700">Você aceitou a oferta de {accepted.sellerName} por {formatBRL(accepted.price)}.</p>
+              <p className="text-sm text-green-700">Você aceitou a oferta de {accepted.sellerName} por {formatBRL(accepted.price * (1 + SERVICE_FEE_RATE))}.</p>
             </div>
           </div>
         )}
@@ -148,6 +234,8 @@ export default function OrderOffers() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {rawOffers.map(offer => {
+              const fee = offer.price * SERVICE_FEE_RATE;
+              const total = offer.price + fee;
               const isBest = offer.price === lowestPrice && order.status === 'active' && offer.status !== 'rejected';
               const isAccepted = offer.status === 'accepted';
               const isRejected = offer.status === 'rejected';
@@ -160,7 +248,6 @@ export default function OrderOffers() {
                     : 'border-gray-100'
                   } ${isRejected ? 'opacity-50' : ''}`}>
 
-                  {/* Card header: best / accepted badge */}
                   {(isBest || isAccepted) && (
                     <div className={`px-4 py-2 rounded-t-2xl text-xs font-bold flex items-center gap-1 ${
                       isAccepted ? 'bg-green-500 text-white' : 'bg-brand-pink text-white'
@@ -177,11 +264,8 @@ export default function OrderOffers() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <Link
-                            to={`/seller/profile/${offer.sellerId}`}
-                            className="font-bold text-gray-900 hover:text-brand-pink transition-colors text-sm leading-tight"
-                            onClick={e => e.stopPropagation()}
-                          >
+                          <Link to={`/seller/profile/${offer.sellerId}?backTo=${backTo}`}
+                            className="font-bold text-gray-900 hover:text-brand-pink transition-colors text-sm leading-tight">
                             {offer.sellerName}
                           </Link>
                           {offer.sellerVerified && <ShieldCheck size={13} className="text-brand-blue flex-shrink-0" />}
@@ -196,52 +280,57 @@ export default function OrderOffers() {
                             <MapPin size={10} /> {offer.sellerLocation}
                           </div>
                         )}
-                        <Link
-                          to={`/seller/profile/${offer.sellerId}`}
-                          className="text-xs text-brand-blue hover:underline mt-1 inline-block"
-                          onClick={e => e.stopPropagation()}
-                        >
+                        <Link to={`/seller/profile/${offer.sellerId}?backTo=${backTo}`}
+                          className="text-xs text-brand-blue hover:underline mt-1 inline-block">
                           Ver produtos vendidos →
                         </Link>
                       </div>
                     </div>
 
-                    {/* Price + delivery row */}
-                    <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 mb-3">
-                      <div>
-                        <p className={`text-2xl font-extrabold ${isAccepted ? 'text-green-600' : isBest ? 'text-brand-pink' : 'text-gray-900'}`}>
-                          {formatBRL(offer.price)}
-                        </p>
-                        <p className="text-xs text-gray-400">preço ofertado</p>
+                    {/* Price breakdown */}
+                    <div className="bg-gray-50 rounded-xl px-4 py-3 mb-3 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Preço do vendedor</span>
+                        <span>{formatBRL(offer.price)}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 justify-end">
-                          <Truck size={12} className="text-gray-400" />
-                          <span className="text-sm font-semibold text-gray-700">{offer.deliveryDays}d úteis</span>
-                        </div>
-                        <p className="text-xs text-gray-400">entrega</p>
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>Taxa de serviço (3%)</span>
+                        <span>{formatBRL(fee)}</span>
+                      </div>
+                      <div className="border-t border-gray-200 pt-1.5 flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">Total</span>
+                        <span className={`text-xl font-extrabold ${isAccepted ? 'text-green-600' : isBest ? 'text-brand-pink' : 'text-gray-900'}`}>
+                          {formatBRL(total)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end gap-1">
+                        <Truck size={11} className="text-gray-400" />
+                        <span className="text-xs text-gray-500">{offer.deliveryDays}d úteis</span>
                       </div>
                     </div>
 
-                    {/* Message */}
                     {offer.message && (
                       <p className="text-xs text-gray-600 italic mb-3 line-clamp-2">"{offer.message}"</p>
                     )}
 
-                    {/* Photos */}
                     <PhotoGallery photos={offer.photos ?? []} onLightbox={setLightboxSrc} />
 
-                    {/* Accept button */}
+                    {/* Action buttons */}
                     {order.status === 'active' && !isRejected && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                         <button
-                          onClick={() => acceptOffer(offer.id, order.id)}
+                          onClick={() => navigate(`/payment/${order.id}?offerId=${offer.id}`)}
                           className={`w-full font-bold text-sm py-2.5 rounded-xl transition-all ${
                             isBest
                               ? 'bg-brand-pink text-white hover:bg-brand-pink-dark shadow-sm shadow-pink-200'
                               : 'border-2 border-brand-pink text-brand-pink hover:bg-pink-50'
                           }`}>
                           Aceitar Oferta
+                        </button>
+                        <button
+                          onClick={() => setNegotiatingOffer(offer.id)}
+                          className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold py-2 rounded-xl border border-gray-200 text-gray-600 hover:border-brand-blue hover:text-brand-blue transition-colors">
+                          <MessageCircle size={14} /> Negociar preço
                         </button>
                       </div>
                     )}
@@ -253,11 +342,20 @@ export default function OrderOffers() {
         )}
 
         <p className="text-xs text-gray-400 text-center mt-6">
-          ⓘ Ao aceitar uma oferta, o vendedor será notificado e você poderá concluir a compra.
+          ⓘ Ao aceitar uma oferta, você será redirecionado para a tela de pagamento.
         </p>
       </div>
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+
+      {negotiatingOfferObj && (
+        <NegotiateModal
+          sellerName={negotiatingOfferObj.sellerName}
+          currentPrice={negotiatingOfferObj.price}
+          onClose={() => setNegotiatingOffer(null)}
+          onSend={(cp, msg) => handleNegotiateSend(negotiatingOfferObj, cp, msg)}
+        />
+      )}
     </AppLayout>
   );
 }
