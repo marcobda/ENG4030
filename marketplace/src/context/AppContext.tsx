@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Order, Offer, UserRole, Rating, Negotiation } from '../types';
+import { User, Order, Offer, UserRole, Rating, Message } from '../types';
 import { extractTags } from '../utils/extractTags';
 
 export const SERVICE_FEE_RATE = 0.03;
@@ -147,16 +147,17 @@ interface AppContextType {
   orders: Order[];
   offers: Offer[];
   ratings: Rating[];
-  negotiations: Negotiation[];
+  messages: Message[];
   categories: string[];
   createOrder: (data: Omit<Order, 'id' | 'buyerId' | 'buyerName' | 'createdAt' | 'offerCount' | 'status' | 'tags'>) => void;
   submitOffer: (data: Omit<Offer, 'id' | 'createdAt' | 'status'>) => void;
   acceptOffer: (offerId: string, orderId: string) => void;
   submitRating: (data: Omit<Rating, 'id' | 'createdAt'>) => void;
-  submitNegotiation: (data: Omit<Negotiation, 'id' | 'createdAt'>) => void;
+  sendMessage: (data: Omit<Message, 'id' | 'createdAt'>) => void;
   hasRated: (offerId: string, raterRole: 'buyer' | 'seller') => boolean;
   getRatingsForSeller: (sellerId: string) => Rating[];
-  getMyNegotiations: () => Negotiation[];
+  getChannelMessages: (offerId: string) => Message[];
+  getAcceptedOffer: (orderId: string) => Offer | undefined;
   getOrderOffers: (orderId: string) => Offer[];
   getMyOrders: () => Order[];
   getMyOffers: () => Offer[];
@@ -179,8 +180,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ratings, setRatings] = useState<Rating[]>(() => {
     try { return JSON.parse(localStorage.getItem('mc_ratings') || '[]'); } catch { return []; }
   });
-  const [negotiations, setNegotiations] = useState<Negotiation[]>(() => {
-    try { return JSON.parse(localStorage.getItem('mc_negotiations') || '[]'); } catch { return []; }
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try { return JSON.parse(localStorage.getItem('mc_messages') || '[]'); } catch { return []; }
   });
 
   useEffect(() => {
@@ -189,7 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => { localStorage.setItem('mc_orders', JSON.stringify(orders)); }, [orders]);
   useEffect(() => { localStorage.setItem('mc_offers', JSON.stringify(offers)); }, [offers]);
   useEffect(() => { localStorage.setItem('mc_ratings', JSON.stringify(ratings)); }, [ratings]);
-  useEffect(() => { localStorage.setItem('mc_negotiations', JSON.stringify(negotiations)); }, [negotiations]);
+  useEffect(() => { localStorage.setItem('mc_messages', JSON.stringify(messages)); }, [messages]);
 
   const login = (email: string, password: string): boolean => {
     const found = DEMO_USERS.find(u => u.email === email && u.password === password);
@@ -246,8 +247,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRatings(prev => [...prev, { ...data, id: `r_${Date.now()}`, createdAt: new Date().toISOString() }]);
   };
 
-  const submitNegotiation = (data: Omit<Negotiation, 'id' | 'createdAt'>) => {
-    setNegotiations(prev => [...prev, { ...data, id: `n_${Date.now()}`, createdAt: new Date().toISOString() }]);
+  const sendMessage = (data: Omit<Message, 'id' | 'createdAt'>) => {
+    setMessages(prev => [...prev, { ...data, id: `m_${Date.now()}`, createdAt: new Date().toISOString() }]);
   };
 
   const hasRated = (offerId: string, raterRole: 'buyer' | 'seller') =>
@@ -256,15 +257,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getRatingsForSeller = (sellerId: string) =>
     ratings.filter(r => r.rateeId === sellerId && r.raterRole === 'buyer');
 
-  const getMyNegotiations = () =>
-    user ? negotiations.filter(n => n.sellerId === user.id) : [];
+  const getChannelMessages = (offerId: string) =>
+    messages.filter(m => m.offerId === offerId).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+  const getAcceptedOffer = (orderId: string) =>
+    offers.find(o => o.orderId === orderId && o.status === 'accepted');
 
   return (
     <Ctx.Provider value={{
       user, login, register, logout,
-      orders, offers, ratings, negotiations, categories: CATEGORIES,
+      orders, offers, ratings, messages, categories: CATEGORIES,
       createOrder, submitOffer, acceptOffer,
-      submitRating, submitNegotiation, hasRated, getRatingsForSeller, getMyNegotiations,
+      submitRating, sendMessage, hasRated, getRatingsForSeller,
+      getChannelMessages, getAcceptedOffer,
       getOrderOffers, getMyOrders, getMyOffers, getSellerOffers, hasOfferedOnOrder,
     }}>
       {children}
