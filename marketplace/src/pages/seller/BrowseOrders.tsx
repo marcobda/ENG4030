@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp, CATEGORIES } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { Search, Tag, ChevronRight, MessageSquare, Clock } from 'lucide-react';
+import { Search, Tag, ChevronRight, MessageSquare, Clock, X } from 'lucide-react';
 
 function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -15,19 +15,44 @@ export default function BrowseOrders() {
   const { orders, hasOfferedOnOrder } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [search, setSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
   const activeOrders = orders.filter(o => o.status === 'active');
 
-  const filtered = activeOrders.filter(o => {
-    const matchCat = selectedCategory === 'Todos' || o.category === selectedCategory;
+  const catFiltered = activeOrders.filter(o =>
+    selectedCategory === 'Todos' || o.category === selectedCategory
+  );
+
+  // Aggregate available tags from category-filtered orders
+  const tagCounts = new Map<string, number>();
+  for (const o of catFiltered) {
+    for (const t of (o.tags ?? [])) {
+      tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+    }
+  }
+  const availableTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+
+  const filtered = catFiltered.filter(o => {
     const q = search.toLowerCase();
     const matchSearch = !q ||
       o.product.toLowerCase().includes(q) ||
       o.brand.toLowerCase().includes(q) ||
       o.category.toLowerCase().includes(q) ||
-      o.characteristics.toLowerCase().includes(q);
-    return matchCat && matchSearch;
+      o.characteristics.toLowerCase().includes(q) ||
+      (o.tags ?? []).some(t => t.toLowerCase().includes(q));
+    const matchTags = selectedTags.size === 0 || [...selectedTags].every(t => (o.tags ?? []).includes(t));
+    return matchSearch && matchTags;
   });
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      next.has(tag) ? next.delete(tag) : next.add(tag);
+      return next;
+    });
+  };
+
+  const clearTags = () => setSelectedTags(new Set());
 
   return (
     <AppLayout>
@@ -45,17 +70,17 @@ export default function BrowseOrders() {
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por produto, marca ou categoria..."
+            placeholder="Buscar por produto, marca, categoria ou tag..."
             className="w-full border border-gray-200 rounded-2xl pl-10 pr-4 py-3 text-sm focus:border-brand-pink focus:ring-2 focus:ring-pink-100 transition-all bg-white"
           />
         </div>
 
         {/* Category filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => { setSelectedCategory(cat); clearTags(); }}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
                 selectedCategory === cat
                   ? 'bg-brand-pink text-white border-brand-pink shadow-sm shadow-pink-200'
@@ -66,8 +91,40 @@ export default function BrowseOrders() {
           ))}
         </div>
 
+        {/* Tag filter panel */}
+        {availableTags.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5 shadow-sm">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filtrar por tags</p>
+              {selectedTags.size > 0 && (
+                <button onClick={clearTags} className="text-xs text-brand-pink font-semibold flex items-center gap-1 hover:underline">
+                  <X size={11} /> Limpar filtros
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {availableTags.map(tag => {
+                const active = selectedTags.has(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                      active
+                        ? 'bg-brand-blue text-white border-brand-blue'
+                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-brand-blue hover:text-brand-blue'
+                    }`}>
+                    {tag}
+                    <span className="ml-1 opacity-60">({tagCounts.get(tag)})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Results count */}
-        {search || selectedCategory !== 'Todos' ? (
+        {(search || selectedCategory !== 'Todos' || selectedTags.size > 0) ? (
           <p className="text-sm text-gray-500 mb-4">
             {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
           </p>
@@ -80,7 +137,7 @@ export default function BrowseOrders() {
               <Search size={24} className="text-gray-400" />
             </div>
             <h3 className="font-bold text-gray-900 mb-1">Nenhum pedido encontrado</h3>
-            <p className="text-sm text-gray-500">Tente outra categoria ou termo de busca.</p>
+            <p className="text-sm text-gray-500">Tente outra categoria, tag ou termo de busca.</p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
@@ -109,6 +166,24 @@ export default function BrowseOrders() {
                   <h3 className="font-bold text-gray-900 mb-0.5 line-clamp-1">{order.product}</h3>
                   {order.brand && <p className="text-sm text-gray-500 mb-1">{order.brand}</p>}
                   <p className="text-xs text-gray-500 line-clamp-2 mb-3">{order.characteristics}</p>
+
+                  {/* Tags */}
+                  {order.tags && order.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {order.tags.slice(0, 4).map(tag => (
+                        <span
+                          key={tag}
+                          onClick={e => { e.preventDefault(); toggleTag(tag); }}
+                          className={`text-[10px] px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                            selectedTags.has(tag)
+                              ? 'bg-brand-blue text-white border-brand-blue'
+                              : 'bg-blue-50 text-brand-blue border-blue-100 hover:bg-brand-blue hover:text-white'
+                          }`}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div>

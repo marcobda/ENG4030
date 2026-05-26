@@ -2,10 +2,22 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { ArrowLeft, Tag, Package, DollarSign, Truck, MessageSquare, CheckCircle2, Send, Star } from 'lucide-react';
+import PhotoUpload from '../../components/PhotoUpload';
+import { ArrowLeft, Tag, Package, DollarSign, Truck, MessageSquare, CheckCircle2, Send, Star, X, Camera } from 'lucide-react';
 
 function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
+      <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20">
+        <X size={20} />
+      </button>
+      <img src={src} alt="" className="max-w-full max-h-full rounded-lg object-contain" onClick={e => e.stopPropagation()} />
+    </div>
+  );
 }
 
 export default function OrderDetail() {
@@ -21,8 +33,10 @@ export default function OrderDetail() {
   const [price, setPrice] = useState('');
   const [deliveryDays, setDeliveryDays] = useState('3');
   const [message, setMessage] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   if (!order) {
     return (
@@ -41,6 +55,7 @@ export default function OrderDetail() {
     if (!price || isNaN(p) || p <= 0) e.price = 'Informe um preço válido.';
     const d = parseInt(deliveryDays);
     if (!deliveryDays || isNaN(d) || d < 1) e.deliveryDays = 'Informe o prazo de entrega.';
+    if (photos.length === 0) e.photos = 'Adicione pelo menos 1 foto do produto.';
     return e;
   };
 
@@ -61,6 +76,7 @@ export default function OrderDetail() {
       price: parseFloat(price.replace(',', '.')),
       deliveryDays: parseInt(deliveryDays),
       message: message.trim(),
+      photos,
     });
     setSubmitted(true);
     setTimeout(() => navigate('/seller/orders'), 2000);
@@ -123,6 +139,36 @@ export default function OrderDetail() {
                     <p className="text-gray-700">{order.description}</p>
                   </div>
                 )}
+
+                {/* Buyer reference photos */}
+                {order.photos && order.photos.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Fotos de referência do comprador</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {order.photos.map((src, i) => (
+                        <button key={i} type="button" onClick={() => setLightboxSrc(src)}
+                          className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0 hover:opacity-90 transition-opacity">
+                          <img src={src} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {order.tags && order.tags.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Tags</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {order.tags.map(t => (
+                        <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-brand-blue border border-blue-100 font-medium">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                   <span className="text-gray-500">Preço desejado</span>
                   <span className="text-xl font-extrabold text-brand-pink">{formatBRL(order.desiredPrice)}</span>
@@ -188,6 +234,19 @@ export default function OrderDetail() {
                       <p className="text-sm text-gray-700 mt-0.5 italic">"{myOffer.message}"</p>
                     </div>
                   )}
+                  {myOffer.photos && myOffer.photos.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Fotos enviadas</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {myOffer.photos.map((src, i) => (
+                          <button key={i} type="button" onClick={() => setLightboxSrc(src)}
+                            className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : order.status === 'closed' ? (
@@ -230,6 +289,20 @@ export default function OrderDetail() {
                     {errors.deliveryDays && <p className="text-xs text-red-500 mt-1">{errors.deliveryDays}</p>}
                   </div>
 
+                  {/* Required photos */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-2">
+                      <Camera size={14} className="text-brand-pink" /> Fotos do produto *
+                    </label>
+                    <PhotoUpload
+                      photos={photos}
+                      onChange={p => { setPhotos(p); if (p.length > 0) setErrors(prev => ({ ...prev, photos: '' })); }}
+                      maxPhotos={5}
+                      required
+                      error={errors.photos}
+                    />
+                  </div>
+
                   <div>
                     <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-1.5">
                       <MessageSquare size={14} className="text-brand-pink" /> Mensagem (opcional)
@@ -251,6 +324,8 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
+
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </AppLayout>
   );
 }

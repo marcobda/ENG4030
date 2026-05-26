@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Order, Offer, UserRole } from '../types';
+import { extractTags } from '../utils/extractTags';
 
 export const CATEGORIES = [
   'Todos',
@@ -15,8 +16,12 @@ export const CATEGORIES = [
   'Outros',
 ];
 
+function mockOrder(o: Omit<Order, 'tags' | 'photos'>): Order {
+  return { ...o, photos: [], tags: extractTags(o.product, o.brand, o.characteristics, o.description) };
+}
+
 const MOCK_ORDERS: Order[] = [
-  {
+  mockOrder({
     id: 'o1', buyerId: 'u_buyer', buyerName: 'Carlos Silva',
     product: 'Tênis Air Jordan 1 Retro High OG',
     brand: 'Nike',
@@ -25,8 +30,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Procuro o Jordan 1 Chicago original, aceito seminovo em ótimo estado com caixa.',
     category: 'Tênis & Calçados',
     status: 'active', createdAt: '2026-05-20T10:00:00Z', offerCount: 3,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o2', buyerId: 'u_buyer', buyerName: 'Carlos Silva',
     product: 'Relógio Rolex Submariner Date',
     brand: 'Rolex',
@@ -35,8 +40,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Busco Submariner em perfeito estado, preferência de 2020 em diante com papéis.',
     category: 'Relógios de Luxo',
     status: 'active', createdAt: '2026-05-18T14:30:00Z', offerCount: 1,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o3', buyerId: 'u2', buyerName: 'Ana Rodrigues',
     product: 'Bolsa Louis Vuitton Neverfull MM',
     brand: 'Louis Vuitton',
@@ -45,8 +50,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Quero a Neverfull MM original com todos os acessórios e, se possível, nota fiscal.',
     category: 'Bolsas de Luxo',
     status: 'active', createdAt: '2026-05-17T09:15:00Z', offerCount: 5,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o4', buyerId: 'u2', buyerName: 'Ana Rodrigues',
     product: 'iPhone 15 Pro Max 256GB',
     brand: 'Apple',
@@ -55,8 +60,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Preciso com nota fiscal e caixa original. Não aceito aparelho com histórico de reparo.',
     category: 'Eletrônicos',
     status: 'active', createdAt: '2026-05-16T16:00:00Z', offerCount: 8,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o5', buyerId: 'u3', buyerName: 'Pedro Mendes',
     product: 'MacBook Pro M3 Pro 14"',
     brand: 'Apple',
@@ -65,8 +70,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Aceito seminovo com no máximo 6 meses de uso, bateria acima de 90%.',
     category: 'Eletrônicos',
     status: 'active', createdAt: '2026-05-15T11:45:00Z', offerCount: 2,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o6', buyerId: 'u3', buyerName: 'Pedro Mendes',
     product: 'Guitarra Fender Stratocaster Am. Professional II',
     brand: 'Fender',
@@ -75,8 +80,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Seminova em excelente estado, com case original e certificado de autenticidade.',
     category: 'Instrumentos Musicais',
     status: 'active', createdAt: '2026-05-14T08:30:00Z', offerCount: 0,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o7', buyerId: 'u4', buyerName: 'Fernanda Lima',
     product: 'Bolsa Hermès Birkin 30',
     brand: 'Hermès',
@@ -85,8 +90,8 @@ const MOCK_ORDERS: Order[] = [
     description: 'Peça rara, aceito com ou sem recibo original. Farei autenticação.',
     category: 'Bolsas de Luxo',
     status: 'active', createdAt: '2026-05-13T10:00:00Z', offerCount: 2,
-  },
-  {
+  }),
+  mockOrder({
     id: 'o8', buyerId: 'u4', buyerName: 'Fernanda Lima',
     product: 'Tênis Nike Dunk Low Panda',
     brand: 'Nike',
@@ -95,7 +100,7 @@ const MOCK_ORDERS: Order[] = [
     description: 'Preciso novo, na caixa, sem uso.',
     category: 'Tênis & Calçados',
     status: 'active', createdAt: '2026-05-12T15:30:00Z', offerCount: 4,
-  },
+  }),
 ];
 
 const MOCK_OFFERS: Offer[] = [
@@ -105,7 +110,7 @@ const MOCK_OFFERS: Offer[] = [
     sellerRating: 5.0, sellerReviews: 512, sellerVerified: true, sellerLocation: 'SP',
     price: 1050, deliveryDays: 3,
     message: 'Tenho em estoque, condição impecável, comprado direto da Nike.',
-    createdAt: '2026-05-21T10:00:00Z', status: 'pending',
+    photos: [], createdAt: '2026-05-21T10:00:00Z', status: 'pending',
   },
   {
     id: 'f2', orderId: 'o1',
@@ -113,7 +118,7 @@ const MOCK_OFFERS: Offer[] = [
     sellerRating: 4.9, sellerReviews: 237, sellerVerified: true, sellerLocation: 'RJ',
     price: 1100, deliveryDays: 4,
     message: 'Produto novo na caixa, com nota fiscal.',
-    createdAt: '2026-05-21T11:00:00Z', status: 'pending',
+    photos: [], createdAt: '2026-05-21T11:00:00Z', status: 'pending',
   },
   {
     id: 'f3', orderId: 'o1',
@@ -121,7 +126,7 @@ const MOCK_OFFERS: Offer[] = [
     sellerRating: 4.8, sellerReviews: 163, sellerVerified: true, sellerLocation: 'MG',
     price: 1150, deliveryDays: 5,
     message: 'Seminovo, usado apenas 2x, conservadíssimo.',
-    createdAt: '2026-05-21T12:00:00Z', status: 'pending',
+    photos: [], createdAt: '2026-05-21T12:00:00Z', status: 'pending',
   },
 ];
 
@@ -140,7 +145,7 @@ interface AppContextType {
   orders: Order[];
   offers: Offer[];
   categories: string[];
-  createOrder: (data: Omit<Order, 'id' | 'buyerId' | 'buyerName' | 'createdAt' | 'offerCount' | 'status'>) => void;
+  createOrder: (data: Omit<Order, 'id' | 'buyerId' | 'buyerName' | 'createdAt' | 'offerCount' | 'status' | 'tags'>) => void;
   submitOffer: (data: Omit<Offer, 'id' | 'createdAt' | 'status'>) => void;
   acceptOffer: (offerId: string, orderId: string) => void;
   getOrderOffers: (orderId: string) => Offer[];
@@ -184,9 +189,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const logout = () => setUser(null);
 
-  const createOrder = (data: Omit<Order, 'id' | 'buyerId' | 'buyerName' | 'createdAt' | 'offerCount' | 'status'>) => {
+  const createOrder = (data: Omit<Order, 'id' | 'buyerId' | 'buyerName' | 'createdAt' | 'offerCount' | 'status' | 'tags'>) => {
     if (!user) return;
-    setOrders(prev => [{ ...data, id: `o_${Date.now()}`, buyerId: user.id, buyerName: user.name, createdAt: new Date().toISOString(), offerCount: 0, status: 'active' }, ...prev]);
+    const tags = extractTags(data.product, data.brand, data.characteristics, data.description);
+    setOrders(prev => [{ ...data, tags, id: `o_${Date.now()}`, buyerId: user.id, buyerName: user.name, createdAt: new Date().toISOString(), offerCount: 0, status: 'active' }, ...prev]);
   };
 
   const submitOffer = (data: Omit<Offer, 'id' | 'createdAt' | 'status'>) => {

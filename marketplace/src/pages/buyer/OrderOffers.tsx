@@ -1,15 +1,70 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { Star, Truck, ShieldCheck, ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
+import { Star, Truck, ShieldCheck, ArrowLeft, CheckCircle2, FileText, ChevronLeft, ChevronRight, X, Camera } from 'lucide-react';
 
 function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
+      <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20">
+        <X size={20} />
+      </button>
+      <img src={src} alt="" className="max-w-full max-h-full rounded-lg object-contain" onClick={e => e.stopPropagation()} />
+    </div>
+  );
+}
+
+function PhotoGallery({ photos }: { photos: string[] }) {
+  const [idx, setIdx] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  if (photos.length === 0) return null;
+  const prev = () => setIdx(i => (i - 1 + photos.length) % photos.length);
+  const next = () => setIdx(i => (i + 1) % photos.length);
+
+  return (
+    <div className="mt-3">
+      <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 cursor-pointer" onClick={() => setLightbox(true)}>
+        <img src={photos[idx]} alt="" className="w-full h-full object-cover" />
+        {photos.length > 1 && (
+          <>
+            <button type="button" onClick={e => { e.stopPropagation(); prev(); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60">
+              <ChevronLeft size={14} />
+            </button>
+            <button type="button" onClick={e => { e.stopPropagation(); next(); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60">
+              <ChevronRight size={14} />
+            </button>
+            <span className="absolute top-2 right-2 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full font-medium">
+              {idx + 1}/{photos.length}
+            </span>
+          </>
+        )}
+      </div>
+      {photos.length > 1 && (
+        <div className="flex gap-1.5 mt-1.5 overflow-x-auto">
+          {photos.map((src, i) => (
+            <button key={i} type="button" onClick={() => setIdx(i)}
+              className={`flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border-2 transition-colors ${i === idx ? 'border-brand-pink' : 'border-transparent'}`}>
+              <img src={src} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+      {lightbox && <Lightbox src={photos[idx]} onClose={() => setLightbox(false)} />}
+    </div>
+  );
+}
+
 export default function OrderOffers() {
   const { id } = useParams<{ id: string }>();
   const { orders, getOrderOffers, acceptOffer } = useApp();
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const order = orders.find(o => o.id === id);
   const rawOffers = getOrderOffers(id ?? '');
@@ -31,7 +86,6 @@ export default function OrderOffers() {
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto">
-        {/* Back + title */}
         <Link to="/buyer/orders" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
           <ArrowLeft size={16} /> Meus pedidos
         </Link>
@@ -46,10 +100,24 @@ export default function OrderOffers() {
 
         {/* Order summary */}
         <div className="bg-gradient-to-r from-pink-50 to-blue-50 rounded-2xl p-4 mb-6 border border-pink-100">
-          <p className="text-sm font-bold text-gray-900">{order.product}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{order.brand && `${order.brand} · `}{order.category}</p>
-          <p className="text-xs text-gray-500 mt-1">{order.characteristics}</p>
-          <p className="text-sm font-extrabold text-brand-pink mt-2">Preço desejado: {formatBRL(order.desiredPrice)}</p>
+          <div className="flex gap-3">
+            {order.photos && order.photos.length > 0 && (
+              <div className="flex gap-1.5 flex-shrink-0">
+                {order.photos.slice(0, 3).map((src, i) => (
+                  <button key={i} type="button" onClick={() => setLightboxSrc(src)}
+                    className="w-12 h-12 rounded-lg overflow-hidden border border-pink-200 flex-shrink-0">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-bold text-gray-900">{order.product}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{order.brand && `${order.brand} · `}{order.category}</p>
+              <p className="text-xs text-gray-500 mt-1">{order.characteristics}</p>
+              <p className="text-sm font-extrabold text-brand-pink mt-2">Preço desejado: {formatBRL(order.desiredPrice)}</p>
+            </div>
+          </div>
         </div>
 
         {order.status === 'closed' && accepted ? (
@@ -103,7 +171,6 @@ export default function OrderOffers() {
                   )}
 
                   <div className="flex items-start gap-4">
-                    {/* Seller avatar */}
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-100 to-blue-100 flex items-center justify-center text-lg font-bold text-brand-pink flex-shrink-0">
                       {offer.sellerName.charAt(0)}
                     </div>
@@ -144,6 +211,15 @@ export default function OrderOffers() {
                     </div>
                   </div>
 
+                  {/* Seller photos */}
+                  {offer.photos && offer.photos.length > 0 ? (
+                    <PhotoGallery photos={offer.photos} />
+                  ) : (
+                    <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
+                      <Camera size={13} /> Sem fotos do produto
+                    </div>
+                  )}
+
                   {order.status === 'active' && !isRejected && (
                     <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
                       <button
@@ -167,6 +243,8 @@ export default function OrderOffers() {
           ⓘ Ao aceitar uma oferta, o vendedor será notificado e você poderá concluir a compra.
         </p>
       </div>
+
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </AppLayout>
   );
 }
