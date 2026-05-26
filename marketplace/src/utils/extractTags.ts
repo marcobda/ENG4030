@@ -70,14 +70,14 @@ export function extractTags(
     if (re.test(combined) && !tags.includes(label)) tags.push(label);
   }
 
-  // significant words from product/brand (capitalized, not stop words, min 4 chars)
-  const words = [product, brand].join(' ').split(/\W+/).filter(w =>
+  // significant words from all fields (capitalized, not stop words, min 4 chars)
+  const allWords = [product, brand, characteristics, description].join(' ').split(/\W+/).filter(w =>
     w.length >= 4 && !STOP_WORDS.has(w.toLowerCase()) && /^[A-ZÀ-Ü]/i.test(w)
   );
-  for (const w of words) {
+  for (const w of allWords) {
     const cap = w.charAt(0).toUpperCase() + w.slice(1);
     if (!tags.includes(cap)) tags.push(cap);
   }
 
-  return tags.slice(0, 9);
+  return tags.slice(0, 12);
 }

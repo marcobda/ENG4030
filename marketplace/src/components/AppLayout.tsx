@@ -13,6 +13,7 @@ const NAV = [
   { label: 'Meus Pedidos', icon: <ShoppingBag size={18} />, path: '/buyer/orders', roles: ['buyer', 'both'] },
   { label: 'Criar Pedido', icon: <PlusCircle size={18} />, path: '/buyer/orders/create', roles: ['buyer', 'both'] },
   { label: 'Ver Pedidos', icon: <Package size={18} />, path: '/seller/orders', roles: ['seller', 'both'] },
+  { label: 'Minhas Ofertas', icon: <MessageSquare size={18} />, path: '/seller/my-offers', roles: ['seller', 'both'] },
 ] as const;
 
 export default function AppLayout({ children }: { children: ReactNode }) {

@@ -150,6 +150,8 @@ interface AppContextType {
   acceptOffer: (offerId: string, orderId: string) => void;
   getOrderOffers: (orderId: string) => Offer[];
   getMyOrders: () => Order[];
+  getMyOffers: () => Offer[];
+  getSellerOffers: (sellerId: string) => Offer[];
   hasOfferedOnOrder: (orderId: string) => boolean;
 }
 
@@ -214,6 +216,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getMyOrders = () =>
     user ? orders.filter(o => o.buyerId === user.id) : [];
 
+  const getMyOffers = () =>
+    user ? offers.filter(o => o.sellerId === user.id) : [];
+
+  const getSellerOffers = (sellerId: string) =>
+    offers.filter(o => o.sellerId === sellerId);
+
   const hasOfferedOnOrder = (orderId: string) =>
     user ? offers.some(o => o.orderId === orderId && o.sellerId === user.id) : false;
 
@@ -222,7 +230,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user, login, register, logout,
       orders, offers, categories: CATEGORIES,
       createOrder, submitOffer, acceptOffer,
-      getOrderOffers, getMyOrders, hasOfferedOnOrder,
+      getOrderOffers, getMyOrders, getMyOffers, getSellerOffers, hasOfferedOnOrder,
     }}>
       {children}
     </Ctx.Provider>
