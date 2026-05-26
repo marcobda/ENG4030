@@ -61,14 +61,18 @@ export interface Rating {
   createdAt: string;
 }
 
-export interface Negotiation {
+export interface Message {
   id: string;
   offerId: string;
   orderId: string;
   buyerId: string;
   buyerName: string;
   sellerId: string;
+  sellerName: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'buyer' | 'seller';
+  content: string;
   counterPrice?: number;
-  message: string;
   createdAt: string;
 }

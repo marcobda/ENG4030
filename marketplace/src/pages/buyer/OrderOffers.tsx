@@ -5,7 +5,7 @@ import AppLayout from '../../components/AppLayout';
 import {
   Star, Truck, ShieldCheck, ArrowLeft, CheckCircle2,
   ChevronLeft, ChevronRight, X, Camera, MapPin, Award,
-  MessageCircle, Send, DollarSign,
+  MessageCircle,
 } from 'lucide-react';
 
 function formatBRL(n: number) {
@@ -58,89 +58,11 @@ function PhotoGallery({ photos, onLightbox }: { photos: string[]; onLightbox: (s
   );
 }
 
-interface NegotiateModalProps {
-  sellerName: string;
-  currentPrice: number;
-  onClose: () => void;
-  onSend: (counterPrice: number | undefined, message: string) => void;
-}
-function NegotiateModal({ sellerName, currentPrice, onClose, onSend }: NegotiateModalProps) {
-  const [counter, setCounter] = useState('');
-  const [msg, setMsg] = useState('');
-  const [sent, setSent] = useState(false);
-
-  const handleSend = () => {
-    if (!msg.trim()) return;
-    const cp = counter ? parseFloat(counter.replace(',', '.')) : undefined;
-    onSend(cp, msg.trim());
-    setSent(true);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-        {sent ? (
-          <div className="text-center py-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={32} className="text-green-600" />
-            </div>
-            <h3 className="text-lg font-extrabold text-gray-900 mb-2">Mensagem enviada!</h3>
-            <p className="text-sm text-gray-500 mb-6">Sua proposta foi enviada para <strong>{sellerName}</strong>. Aguarde o retorno do vendedor.</p>
-            <button onClick={onClose} className="bg-brand-pink text-white font-bold px-6 py-2.5 rounded-xl hover:bg-brand-pink-dark transition-colors text-sm">
-              Fechar
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-lg font-extrabold text-gray-900">Negociar com {sellerName}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Oferta atual: <strong>{formatBRL(currentPrice)}</strong></p>
-              </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                  <DollarSign size={14} className="text-brand-pink" /> Contra-proposta de preço (opcional)
-                </label>
-                <div className="flex">
-                  <span className="border border-r-0 border-gray-200 bg-gray-50 rounded-l-xl px-3 py-2.5 text-sm font-semibold text-gray-600">R$</span>
-                  <input value={counter} onChange={e => setCounter(e.target.value)}
-                    placeholder={`Ex.: ${Math.round(currentPrice * 0.9).toLocaleString('pt-BR')},00`}
-                    className="flex-1 border border-gray-200 rounded-r-xl px-3 py-2.5 text-sm focus:border-brand-pink focus:ring-2 focus:ring-pink-100 transition-all" />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                  <MessageCircle size={14} className="text-brand-pink" /> Mensagem *
-                </label>
-                <textarea value={msg} onChange={e => setMsg(e.target.value)}
-                  placeholder="Ex.: Toparia por R$ 950 à vista no Pix, tem como ajustar?"
-                  rows={3} maxLength={300}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:border-brand-pink focus:ring-2 focus:ring-pink-100 transition-all" />
-                <p className="text-right text-xs text-gray-400">{msg.length}/300</p>
-              </div>
-              <button onClick={handleSend} disabled={!msg.trim()}
-                className="w-full flex items-center justify-center gap-2 bg-brand-pink text-white font-bold py-3 rounded-xl hover:bg-brand-pink-dark transition-all shadow-sm shadow-pink-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                <Send size={15} /> Enviar proposta
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function OrderOffers() {
   const { id } = useParams<{ id: string }>();
-  const { orders, getOrderOffers, submitNegotiation, user } = useApp();
+  const { orders, getOrderOffers } = useApp();
   const navigate = useNavigate();
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [negotiatingOffer, setNegotiatingOffer] = useState<string | null>(null);
 
   const order = orders.find(o => o.id === id);
   const rawOffers = getOrderOffers(id ?? '');
@@ -159,21 +81,6 @@ export default function OrderOffers() {
 
   const accepted = rawOffers.find(o => o.status === 'accepted');
   const backTo = encodeURIComponent(`/buyer/orders/${order.id}/offers`);
-
-  const handleNegotiateSend = (offer: typeof rawOffers[0], counterPrice: number | undefined, message: string) => {
-    if (!user) return;
-    submitNegotiation({
-      offerId: offer.id,
-      orderId: order.id,
-      buyerId: user.id,
-      buyerName: user.name,
-      sellerId: offer.sellerId,
-      counterPrice,
-      message,
-    });
-  };
-
-  const negotiatingOfferObj = negotiatingOffer ? rawOffers.find(o => o.id === negotiatingOffer) : null;
 
   return (
     <AppLayout>
@@ -328,7 +235,7 @@ export default function OrderOffers() {
                           Aceitar Oferta
                         </button>
                         <button
-                          onClick={() => setNegotiatingOffer(offer.id)}
+                          onClick={() => navigate(`/messages/${offer.id}`)}
                           className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold py-2 rounded-xl border border-gray-200 text-gray-600 hover:border-brand-blue hover:text-brand-blue transition-colors">
                           <MessageCircle size={14} /> Negociar preço
                         </button>
@@ -347,15 +254,6 @@ export default function OrderOffers() {
       </div>
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
-
-      {negotiatingOfferObj && (
-        <NegotiateModal
-          sellerName={negotiatingOfferObj.sellerName}
-          currentPrice={negotiatingOfferObj.price}
-          onClose={() => setNegotiatingOffer(null)}
-          onSend={(cp, msg) => handleNegotiateSend(negotiatingOfferObj, cp, msg)}
-        />
-      )}
     </AppLayout>
   );
 }

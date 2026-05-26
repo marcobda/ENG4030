@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { PlusCircle, ChevronRight, MessageSquare, Clock, CheckCircle2, Tag, Camera } from 'lucide-react';
+import { PlusCircle, ChevronRight, MessageSquare, Clock, CheckCircle2, Tag, Camera, Star } from 'lucide-react';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -12,7 +12,7 @@ function formatBRL(n: number) {
 }
 
 export default function MyOrders() {
-  const { getMyOrders } = useApp();
+  const { getMyOrders, getAcceptedOffer, hasRated } = useApp();
   const orders = getMyOrders();
 
   return (
@@ -44,7 +44,10 @@ export default function MyOrders() {
           </div>
         ) : (
           <div className="space-y-3">
-            {orders.map(order => (
+            {orders.map(order => {
+              const acceptedOffer = order.status === 'closed' ? getAcceptedOffer(order.id) : undefined;
+              const canRateSeller = acceptedOffer && !hasRated(acceptedOffer.id, 'buyer');
+              return (
               <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                 <div className="p-5">
                   {/* Top row: thumbnail + info + price */}
@@ -97,16 +100,25 @@ export default function MyOrders() {
                       </span>
                     </div>
 
-                    {order.offerCount > 0 && order.status === 'active' && (
-                      <Link to={`/buyer/orders/${order.id}/offers`}
-                        className="flex items-center gap-1 text-sm font-semibold text-brand-pink hover:text-brand-pink-dark transition-colors">
-                        Ver ofertas <ChevronRight size={16} />
-                      </Link>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {order.offerCount > 0 && (
+                        <Link to={`/buyer/orders/${order.id}/offers`}
+                          className="flex items-center gap-1 text-sm font-semibold text-brand-pink hover:text-brand-pink-dark transition-colors">
+                          Ver ofertas <ChevronRight size={16} />
+                        </Link>
+                      )}
+                      {canRateSeller && (
+                        <Link to={`/buyer/rate/${acceptedOffer!.id}`}
+                          className="flex items-center gap-1 text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors">
+                          <Star size={14} /> Avaliar vendedor
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

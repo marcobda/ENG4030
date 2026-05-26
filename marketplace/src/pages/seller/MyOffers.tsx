@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { Clock, CheckCircle2, XCircle, Send, Package, Tag, ChevronRight, Camera, Star } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Send, Package, Tag, ChevronRight, Camera, Star, MessageCircle } from 'lucide-react';
 
 function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -11,7 +11,7 @@ function formatDate(iso: string) {
 }
 
 export default function MyOffers() {
-  const { getMyOffers, orders, hasRated } = useApp();
+  const { getMyOffers, orders, hasRated, getChannelMessages } = useApp();
   const myOffers = getMyOffers();
 
   const enriched = myOffers
@@ -52,6 +52,7 @@ export default function MyOffers() {
               const isAccepted = offer.status === 'accepted';
               const isRejected = offer.status === 'rejected';
               const rated = hasRated(offer.id, 'seller');
+              const msgCount = getChannelMessages(offer.id).length;
               return (
                 <div
                   key={offer.id}
@@ -113,10 +114,17 @@ export default function MyOffers() {
                     </div>
                   </Link>
 
-                  {/* Rate buyer button (only for accepted offers) */}
-                  {isAccepted && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      {rated ? (
+                  {/* Messages + rate buyer (for accepted offers) */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                    <Link to={`/messages/${offer.id}`}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue hover:text-brand-blue/80 transition-colors">
+                      <MessageCircle size={14} /> Mensagens
+                      {msgCount > 0 && (
+                        <span className="bg-brand-blue text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">{msgCount}</span>
+                      )}
+                    </Link>
+                    {isAccepted && (
+                      rated ? (
                         <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
                           <Star size={12} className="fill-yellow-400 text-yellow-400" /> Comprador avaliado
                         </span>
@@ -125,9 +133,9 @@ export default function MyOffers() {
                           className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-pink hover:text-brand-pink-dark transition-colors">
                           <Star size={14} /> Avaliar comprador
                         </Link>
-                      )}
-                    </div>
-                  )}
+                      )
+                    )}
+                  </div>
                 </div>
               );
             })}

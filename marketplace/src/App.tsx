@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import Payment from './pages/Payment';
+import Messages from './pages/Messages';
 import MyOrders from './pages/buyer/MyOrders';
 import CreateOrder from './pages/buyer/CreateOrder';
 import OrderOffers from './pages/buyer/OrderOffers';
@@ -36,6 +37,7 @@ function AppRoutes() {
       <Route path="/seller/my-offers" element={<Guard role="seller"><MyOffers /></Guard>} />
       <Route path="/seller/rate/:offerId" element={<Guard role="seller"><RateBuyer /></Guard>} />
       <Route path="/seller/profile/:sellerId" element={<Guard><SellerProfile /></Guard>} />
+      <Route path="/messages/:offerId" element={<Guard><Messages /></Guard>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
