@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
 import { ArrowLeft, Star, ShieldCheck, MapPin, Package, CheckCircle2, Clock, Tag } from 'lucide-react';
@@ -12,6 +12,8 @@ function formatDate(iso: string) {
 
 export default function SellerProfile() {
   const { sellerId } = useParams<{ sellerId: string }>();
+  const [searchParams] = useSearchParams();
+  const backTo = searchParams.get('backTo') || '/buyer/orders';
   const { getSellerOffers, orders } = useApp();
 
   const sellerOffers = getSellerOffers(sellerId ?? '');
@@ -22,7 +24,7 @@ export default function SellerProfile() {
       <AppLayout>
         <div className="text-center py-16">
           <p className="text-gray-500">Vendedor não encontrado.</p>
-          <Link to="/buyer/orders" className="mt-4 inline-block text-brand-pink font-semibold">Voltar</Link>
+          <Link to={backTo} className="mt-4 inline-block text-brand-pink font-semibold">Voltar</Link>
         </div>
       </AppLayout>
     );
@@ -43,8 +45,8 @@ export default function SellerProfile() {
   return (
     <AppLayout>
       <div className="max-w-2xl mx-auto">
-        <Link to="/buyer/orders" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-5">
-          <ArrowLeft size={16} /> Voltar
+        <Link to={backTo} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-5">
+          <ArrowLeft size={16} /> Voltar às ofertas
         </Link>
 
         {/* Seller header card */}

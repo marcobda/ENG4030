@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
-import { Clock, CheckCircle2, XCircle, Send, Package, Tag, ChevronRight, Camera } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Send, Package, Tag, ChevronRight, Camera, Star } from 'lucide-react';
 
 function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -11,7 +11,7 @@ function formatDate(iso: string) {
 }
 
 export default function MyOffers() {
-  const { getMyOffers, orders } = useApp();
+  const { getMyOffers, orders, hasRated } = useApp();
   const myOffers = getMyOffers();
 
   const enriched = myOffers
@@ -51,66 +51,84 @@ export default function MyOffers() {
             {enriched.map(({ offer, order }) => {
               const isAccepted = offer.status === 'accepted';
               const isRejected = offer.status === 'rejected';
+              const rated = hasRated(offer.id, 'seller');
               return (
-                <Link
+                <div
                   key={offer.id}
-                  to={`/seller/orders/${order!.id}`}
-                  className={`bg-white rounded-2xl border-2 shadow-sm p-5 flex gap-4 transition-all hover:shadow-md block ${
-                    isAccepted ? 'border-green-200' : isRejected ? 'border-gray-100 opacity-60' : 'border-gray-100 hover:border-brand-pink/30'
+                  className={`bg-white rounded-2xl border-2 shadow-sm p-5 transition-all ${
+                    isAccepted ? 'border-green-200' : isRejected ? 'border-gray-100 opacity-60' : 'border-gray-100'
                   }`}
                 >
-                  {/* Photo or placeholder */}
-                  <div className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">
-                    {offer.photos && offer.photos.length > 0 ? (
-                      <img src={offer.photos[0]} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <Camera size={20} className="text-gray-300" />
-                    )}
-                  </div>
+                  <Link to={`/seller/orders/${order!.id}`} className="flex gap-4 hover:opacity-90 transition-opacity">
+                    {/* Photo or placeholder */}
+                    <div className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">
+                      {offer.photos && offer.photos.length > 0 ? (
+                        <img src={offer.photos[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera size={20} className="text-gray-300" />
+                      )}
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          {isAccepted && (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                              <CheckCircle2 size={11} /> Aceita
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {isAccepted && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                <CheckCircle2 size={11} /> Aceita
+                              </span>
+                            )}
+                            {isRejected && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                <XCircle size={11} /> Não aceita
+                              </span>
+                            )}
+                            {offer.status === 'pending' && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                                <Clock size={10} /> Aguardando
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                              <Tag size={10} /> {order!.category}
                             </span>
-                          )}
-                          {isRejected && (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                              <XCircle size={11} /> Não aceita
-                            </span>
-                          )}
-                          {offer.status === 'pending' && (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
-                              <Clock size={10} /> Aguardando
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Tag size={10} /> {order!.category}
-                          </span>
+                          </div>
+                          <p className="font-bold text-gray-900 truncate">{order!.product}</p>
+                          {order!.brand && <p className="text-sm text-gray-500">{order!.brand}</p>}
                         </div>
-                        <p className="font-bold text-gray-900 truncate">{order!.product}</p>
-                        {order!.brand && <p className="text-sm text-gray-500">{order!.brand}</p>}
+                        <ChevronRight size={16} className="text-gray-300 flex-shrink-0 mt-1" />
                       </div>
-                      <ChevronRight size={16} className="text-gray-300 flex-shrink-0 mt-1" />
-                    </div>
 
-                    <div className="flex items-center gap-4 mt-2">
-                      <div>
-                        <p className="text-lg font-extrabold text-brand-pink">{formatBRL(offer.price)}</p>
-                        <p className="text-xs text-gray-400">seu preço ofertado</p>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        <p>{offer.deliveryDays} dia{offer.deliveryDays !== 1 ? 's' : ''} úteis</p>
-                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                          <Clock size={10} /> {formatDate(offer.createdAt)}
-                        </p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div>
+                          <p className="text-lg font-extrabold text-brand-pink">{formatBRL(offer.price)}</p>
+                          <p className="text-xs text-gray-400">seu preço ofertado</p>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          <p>{offer.deliveryDays} dia{offer.deliveryDays !== 1 ? 's' : ''} úteis</p>
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                            <Clock size={10} /> {formatDate(offer.createdAt)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+
+                  {/* Rate buyer button (only for accepted offers) */}
+                  {isAccepted && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      {rated ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                          <Star size={12} className="fill-yellow-400 text-yellow-400" /> Comprador avaliado
+                        </span>
+                      ) : (
+                        <Link to={`/seller/rate/${offer.id}`}
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-pink hover:text-brand-pink-dark transition-colors">
+                          <Star size={14} /> Avaliar comprador
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

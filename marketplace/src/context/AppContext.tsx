@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Order, Offer, UserRole } from '../types';
+import { User, Order, Offer, UserRole, Rating, Negotiation } from '../types';
 import { extractTags } from '../utils/extractTags';
+
+export const SERVICE_FEE_RATE = 0.03;
 
 export const CATEGORIES = [
   'Todos',
@@ -144,10 +146,17 @@ interface AppContextType {
   logout: () => void;
   orders: Order[];
   offers: Offer[];
+  ratings: Rating[];
+  negotiations: Negotiation[];
   categories: string[];
   createOrder: (data: Omit<Order, 'id' | 'buyerId' | 'buyerName' | 'createdAt' | 'offerCount' | 'status' | 'tags'>) => void;
   submitOffer: (data: Omit<Offer, 'id' | 'createdAt' | 'status'>) => void;
   acceptOffer: (offerId: string, orderId: string) => void;
+  submitRating: (data: Omit<Rating, 'id' | 'createdAt'>) => void;
+  submitNegotiation: (data: Omit<Negotiation, 'id' | 'createdAt'>) => void;
+  hasRated: (offerId: string, raterRole: 'buyer' | 'seller') => boolean;
+  getRatingsForSeller: (sellerId: string) => Rating[];
+  getMyNegotiations: () => Negotiation[];
   getOrderOffers: (orderId: string) => Offer[];
   getMyOrders: () => Order[];
   getMyOffers: () => Offer[];
@@ -167,12 +176,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [offers, setOffers] = useState<Offer[]>(() => {
     try { return JSON.parse(localStorage.getItem('mc_offers') || 'null') || MOCK_OFFERS; } catch { return MOCK_OFFERS; }
   });
+  const [ratings, setRatings] = useState<Rating[]>(() => {
+    try { return JSON.parse(localStorage.getItem('mc_ratings') || '[]'); } catch { return []; }
+  });
+  const [negotiations, setNegotiations] = useState<Negotiation[]>(() => {
+    try { return JSON.parse(localStorage.getItem('mc_negotiations') || '[]'); } catch { return []; }
+  });
 
   useEffect(() => {
     user ? localStorage.setItem('mc_user', JSON.stringify(user)) : localStorage.removeItem('mc_user');
   }, [user]);
   useEffect(() => { localStorage.setItem('mc_orders', JSON.stringify(orders)); }, [orders]);
   useEffect(() => { localStorage.setItem('mc_offers', JSON.stringify(offers)); }, [offers]);
+  useEffect(() => { localStorage.setItem('mc_ratings', JSON.stringify(ratings)); }, [ratings]);
+  useEffect(() => { localStorage.setItem('mc_negotiations', JSON.stringify(negotiations)); }, [negotiations]);
 
   const login = (email: string, password: string): boolean => {
     const found = DEMO_USERS.find(u => u.email === email && u.password === password);
@@ -225,11 +242,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const hasOfferedOnOrder = (orderId: string) =>
     user ? offers.some(o => o.orderId === orderId && o.sellerId === user.id) : false;
 
+  const submitRating = (data: Omit<Rating, 'id' | 'createdAt'>) => {
+    setRatings(prev => [...prev, { ...data, id: `r_${Date.now()}`, createdAt: new Date().toISOString() }]);
+  };
+
+  const submitNegotiation = (data: Omit<Negotiation, 'id' | 'createdAt'>) => {
+    setNegotiations(prev => [...prev, { ...data, id: `n_${Date.now()}`, createdAt: new Date().toISOString() }]);
+  };
+
+  const hasRated = (offerId: string, raterRole: 'buyer' | 'seller') =>
+    user ? ratings.some(r => r.offerId === offerId && r.raterId === user.id && r.raterRole === raterRole) : false;
+
+  const getRatingsForSeller = (sellerId: string) =>
+    ratings.filter(r => r.rateeId === sellerId && r.raterRole === 'buyer');
+
+  const getMyNegotiations = () =>
+    user ? negotiations.filter(n => n.sellerId === user.id) : [];
+
   return (
     <Ctx.Provider value={{
       user, login, register, logout,
-      orders, offers, categories: CATEGORIES,
+      orders, offers, ratings, negotiations, categories: CATEGORIES,
       createOrder, submitOffer, acceptOffer,
+      submitRating, submitNegotiation, hasRated, getRatingsForSeller, getMyNegotiations,
       getOrderOffers, getMyOrders, getMyOffers, getSellerOffers, hasOfferedOnOrder,
     }}>
       {children}
