@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import AppLayout from '../../components/AppLayout';
 import PhotoUpload from '../../components/PhotoUpload';
-import { ArrowLeft, Tag, Package, DollarSign, Truck, MessageSquare, CheckCircle2, Send, Star, X, Camera } from 'lucide-react';
+import { ArrowLeft, Tag, Package, DollarSign, Truck, MessageSquare, CheckCircle2, Send, X, Camera } from 'lucide-react';
 
 function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -96,7 +96,7 @@ export default function OrderDetail() {
     );
   }
 
-  const lowestOffer = existingOffers.length > 0 ? Math.min(...existingOffers.map(o => o.price)) : null;
+  const offerCount = existingOffers.length;
 
   return (
     <AppLayout>
@@ -176,36 +176,14 @@ export default function OrderDetail() {
               </div>
             </div>
 
-            {/* Existing offers */}
-            {existingOffers.length > 0 && (
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <MessageSquare size={16} className="text-brand-pink" />
-                  Concorrência ({existingOffers.length} ofertas)
-                </h3>
-                <p className="text-xs text-gray-500 mb-3">Menor oferta atual: <strong className="text-green-700">{lowestOffer ? formatBRL(lowestOffer) : '-'}</strong></p>
-                <div className="space-y-2">
-                  {existingOffers.slice(0, 3).map(offer => (
-                    <div key={offer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-100 to-blue-100 flex items-center justify-center text-xs font-bold text-brand-pink">
-                          {offer.sellerName.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-900">{offer.sellerName}</p>
-                          <div className="flex items-center gap-0.5">
-                            <Star size={10} className="fill-yellow-400 text-yellow-400" />
-                            <span className="text-xs text-gray-500">{offer.sellerRating}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gray-900">{formatBRL(offer.price)}</p>
-                        <p className="text-xs text-gray-400">{offer.deliveryDays}d úteis</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Competition hint — no prices shown */}
+            {offerCount > 0 && (
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
+                <MessageSquare size={18} className="text-amber-500 flex-shrink-0" />
+                <p className="text-sm text-amber-800">
+                  <strong>{offerCount}</strong> vendedor{offerCount !== 1 ? 'es' : ''} já {offerCount !== 1 ? 'enviaram ofertas' : 'enviou oferta'} para este pedido.
+                  Envie sua melhor proposta para se destacar.
+                </p>
               </div>
             )}
           </div>
@@ -273,9 +251,6 @@ export default function OrderDetail() {
                         }`} />
                     </div>
                     {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
-                    {lowestOffer && (
-                      <p className="text-xs text-gray-400 mt-1">Menor oferta atual: {formatBRL(lowestOffer)}</p>
-                    )}
                   </div>
 
                   <div>

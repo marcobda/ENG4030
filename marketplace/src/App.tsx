@@ -7,6 +7,8 @@ import CreateOrder from './pages/buyer/CreateOrder';
 import OrderOffers from './pages/buyer/OrderOffers';
 import BrowseOrders from './pages/seller/BrowseOrders';
 import OrderDetail from './pages/seller/OrderDetail';
+import MyOffers from './pages/seller/MyOffers';
+import SellerProfile from './pages/seller/SellerProfile';
 import { ReactNode } from 'react';
 
 function Guard({ children, role }: { children: ReactNode; role?: 'buyer' | 'seller' }) {
@@ -26,6 +28,8 @@ function AppRoutes() {
       <Route path="/buyer/orders/:id/offers" element={<Guard role="buyer"><OrderOffers /></Guard>} />
       <Route path="/seller/orders" element={<Guard role="seller"><BrowseOrders /></Guard>} />
       <Route path="/seller/orders/:id" element={<Guard role="seller"><OrderDetail /></Guard>} />
+      <Route path="/seller/my-offers" element={<Guard role="seller"><MyOffers /></Guard>} />
+      <Route path="/seller/profile/:sellerId" element={<Guard><SellerProfile /></Guard>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
