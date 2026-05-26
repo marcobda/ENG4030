@@ -157,6 +157,7 @@ interface AppContextType {
   hasRated: (offerId: string, raterRole: 'buyer' | 'seller') => boolean;
   getRatingsForSeller: (sellerId: string) => Rating[];
   getChannelMessages: (offerId: string) => Message[];
+  acceptCounterPrice: (offerId: string, newPrice: number) => void;
   getAcceptedOffer: (orderId: string) => Offer | undefined;
   getOrderOffers: (orderId: string) => Offer[];
   getMyOrders: () => Order[];
@@ -249,6 +250,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = (data: Omit<Message, 'id' | 'createdAt'>) => {
     setMessages(prev => [...prev, { ...data, id: `m_${Date.now()}`, createdAt: new Date().toISOString() }]);
+    if (data.senderRole === 'seller' && data.counterPrice !== undefined) {
+      setOffers(prev => prev.map(o => o.id === data.offerId ? { ...o, price: data.counterPrice! } : o));
+    }
+  };
+
+  const acceptCounterPrice = (offerId: string, newPrice: number) => {
+    setOffers(prev => prev.map(o => o.id === offerId ? { ...o, price: newPrice } : o));
   };
 
   const hasRated = (offerId: string, raterRole: 'buyer' | 'seller') =>
@@ -271,7 +279,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       orders, offers, ratings, messages, categories: CATEGORIES,
       createOrder, submitOffer, acceptOffer,
       submitRating, sendMessage, hasRated, getRatingsForSeller,
-      getChannelMessages, getAcceptedOffer,
+      getChannelMessages, acceptCounterPrice, getAcceptedOffer,
       getOrderOffers, getMyOrders, getMyOffers, getSellerOffers, hasOfferedOnOrder,
     }}>
       {children}

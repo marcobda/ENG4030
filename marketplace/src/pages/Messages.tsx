@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import AppLayout from '../components/AppLayout';
-import { ArrowLeft, Send, ShieldAlert, DollarSign } from 'lucide-react';
+import { ArrowLeft, Send, ShieldAlert, DollarSign, CheckCircle2 } from 'lucide-react';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -25,7 +25,7 @@ function dayLabel(iso: string) {
 
 export default function Messages() {
   const { offerId } = useParams<{ offerId: string }>();
-  const { offers, orders, user, getChannelMessages, sendMessage } = useApp();
+  const { offers, orders, user, getChannelMessages, sendMessage, acceptCounterPrice } = useApp();
 
   const offer = offers.find(o => o.id === offerId);
   const order = offer ? orders.find(o => o.id === offer.orderId) : undefined;
@@ -169,6 +169,29 @@ export default function Messages() {
                       )}
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                     </div>
+                    {/* Accept counter-price button: shown to seller when buyer proposes a price */}
+                    {msg.counterPrice !== undefined && msg.senderRole === 'buyer' && isSeller && (
+                      offer.price === msg.counterPrice ? (
+                        <div className="flex items-center gap-1 text-xs text-green-600 font-semibold mt-1 ml-1">
+                          <CheckCircle2 size={12} /> Proposta aceita
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => acceptCounterPrice(offer.id, msg.counterPrice!)}
+                          className="mt-1 ml-1 text-xs font-bold text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full transition-colors">
+                          Aceitar {formatBRL(msg.counterPrice)}
+                        </button>
+                      )
+                    )}
+                    {/* Auto-updated label: shown when seller's counter-price is the current price */}
+                    {msg.counterPrice !== undefined && msg.senderRole === 'seller' && (
+                      <div className={`flex items-center gap-1 text-[10px] font-medium mt-1 ${mine ? 'text-gray-400 mr-1 justify-end' : 'text-gray-400 ml-1'}`}>
+                        {offer.price === msg.counterPrice
+                          ? <><CheckCircle2 size={10} className="text-green-500" /> Preço atualizado</>
+                          : 'Substituído por proposta mais recente'
+                        }
+                      </div>
+                    )}
                     <span className={`text-[10px] mt-0.5 ${mine ? 'text-gray-400 mr-1' : 'text-gray-400 ml-1'}`}>
                       {formatTime(msg.createdAt)}
                     </span>
